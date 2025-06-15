@@ -4,16 +4,17 @@ FROM golang:1.24-alpine
 
 WORKDIR /app
 
-# 1. Copie des fichiers de module (y compris go.sum s’il existe déjà)
-COPY go.mod go.sum ./
-
-# 2. Téléchargement des dépendances
+# 1) Copie des fichiers de module et téléchargement des deps
+COPY go.mod ./
 RUN go mod download
 
-# 3. Copie du reste du code (main.go, login.html, etc.)
+# 2) Copie du reste du code (main.go, login.html, etc.)
 COPY . .
 
-# 4. Compilation
+# 3) Re-génère go.sum après la copie (évite l’écrasement)
+RUN go mod tidy
+
+# 4) Compile
 RUN CGO_ENABLED=0 go build -o auth .
 
 ENV GIN_MODE=release
