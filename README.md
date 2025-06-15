@@ -142,7 +142,7 @@ sudo ufw enable
 * Ajouter un frontend amélioré pour la page de login
 * Packager l’image Docker « navigateur » sur Docker Hub
 * Ajouter des tests CI (GitHub Actions)
-* redir en cas de non auth de go vers caddy + redir ne marche pas sur /labs
+* Readme sur no cache des reponses
 
 ---
 

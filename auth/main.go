@@ -1,5 +1,3 @@
-// main.go — version corrigée (suppression fiable du cookie)
-
 package main
 
 import (
@@ -24,9 +22,20 @@ var (
 )
 
 // --------------------------------------------------------------------
-// Auth helpers
+//  NO-CACHE middleware (empêche la mise en cache côté navigateur)
 // --------------------------------------------------------------------
+func noCache() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Cache-Control", "no-store, max-age=0")
+		c.Writer.Header().Set("Pragma", "no-cache")
+		c.Writer.Header().Set("Expires", "0")
+		c.Next()
+	}
+}
 
+// --------------------------------------------------------------------
+//  Auth helpers
+// --------------------------------------------------------------------
 func issueToken(c *gin.Context) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": user,
@@ -34,14 +43,11 @@ func issueToken(c *gin.Context) {
 	})
 	signed, _ := t.SignedString(secretKey)
 
-	// Tous les attributs (Path, Domain, SameSite) devront être identiques
-	// quand on supprimera le cookie.
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("token", signed, 86400, "/", cookieDomain, true, true)
 }
 
 func clearToken(c *gin.Context) {
-	// Reproduire EXACTEMENT les attributs pour écraser le même cookie
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("token", "", -1, "/", cookieDomain, true, true)
 }
@@ -56,16 +62,15 @@ func tokenValid(c *gin.Context) bool {
 }
 
 // --------------------------------------------------------------------
-// Main
+//  Main
 // --------------------------------------------------------------------
-
 func main() {
 	if user == "" || pass == "" {
 		log.Fatal("LOGIN_USER and LOGIN_PASS must be set")
 	}
 
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), noCache()) // ← middleware anti-cache
 
 	// Page de connexion
 	r.GET("/", func(c *gin.Context) {
@@ -76,7 +81,7 @@ func main() {
 	r.POST("/api/login", func(c *gin.Context) {
 		if c.PostForm("username") == user && c.PostForm("password") == pass {
 			issueToken(c)
-			c.Redirect(http.StatusFound, "/labs/") // 302 vers la zone protégée
+			c.Redirect(http.StatusFound, "/labs/") // 302 zone protégée
 			return
 		}
 		c.Redirect(http.StatusFound, "/") // mauvais identifiants
@@ -95,8 +100,7 @@ func main() {
 			c.Status(http.StatusOK) // Auth OK
 			return
 		}
-		// Auth KO → réponse 401 pour que Caddy redirige
-		c.Status(http.StatusUnauthorized)
+		c.Status(http.StatusUnauthorized) // Auth KO
 	})
 
 	log.Fatal(r.Run(":8081"))
