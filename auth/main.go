@@ -85,9 +85,9 @@ func main() {
 	r.GET("/api/verify", func(c *gin.Context) {
 		if tokenValid(c) {
 			c.Status(http.StatusOK)
-		} else {
-			c.Status(http.StatusUnauthorized)
+			return
 		}
+		c.Status(http.StatusUnauthorized)   // ← 401 « sec » mais pas de redirection
 	})
 
 	log.Fatal(r.Run(":8081"))
