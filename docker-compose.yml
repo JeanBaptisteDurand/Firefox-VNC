@@ -3,14 +3,11 @@ version: "3"
 services:
   navigateur:
     image: dorowu/ubuntu-desktop-lxde-vnc
-    container_name: navigateur
-    restart: unless-stopped
-    ports:
-      - "8080:6079"   # juste pour le test
+    ports:      [ "8080:80" ]
+    volumes:    [ "/dev/shm:/dev/shm" ]
+    shm_size:   8g
     environment:
       - RESOLUTION=1920x1080
-    networks:
-      - internal
 
 #  caddy:
 #    image: caddy:latest
