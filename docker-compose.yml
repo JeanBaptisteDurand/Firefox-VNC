@@ -8,7 +8,7 @@ services:
     expose:
       - "6080"  # Seulement accessible en interne par Caddy
     environment:
-      - VNC_RESOLUTION=1280x800
+      - VNC_RESOLUTION=1920x1080
     networks:
       - internal
 
