@@ -1,4 +1,10 @@
-:80 {
+# Domaine principal en HTTPS automatique
+zos-academy.fr {
     reverse_proxy navigateur:80
     encode gzip
+}
+
+# Redirige www → domaine nu (SEO & cohérence)
+www.zos-academy.fr {
+    redir https://zos-academy.fr{uri} permanent
 }
