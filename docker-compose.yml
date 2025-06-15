@@ -6,7 +6,7 @@ services:
     container_name: navigateur
     restart: unless-stopped
     expose:
-      - "6079"
+      - "80"
     environment:
       - RESOLUTION=1920x1080
     networks:
@@ -17,7 +17,7 @@ services:
     container_name: caddy
     restart: unless-stopped
     ports:
-      - "6667:80"  # Serveur HTTP accessible depuis l’extérieur via le port 6667
+      - "6667:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
     networks:
