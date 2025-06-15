@@ -1,43 +1,61 @@
+# ----------------------------------------------------------
+# Caddyfile – zos-academy.fr
+# ----------------------------------------------------------
+
+##############################################################################
+# OPTIONS GLOBALES (facultatif, mais recommandé pour la lisibilité)
+##############################################################################
+{
+	# Exemple : journaliser dans un fichier plutôt qu’en STDOUT
+	# log {
+	# 	output file /var/log/caddy/zos.log
+	# }
+
+	# Ajuste automatiquement la compression, HTTP/3, etc.
+}
+
+##############################################################################
+# SITE PRINCIPAL
+##############################################################################
 zos-academy.fr {
 
-	# -------------------------------------------------------
-	# Routes publiques (tout sauf /labs/*)
-	# -------------------------------------------------------
+	################################################################################
+	# 1. Routes publiques  — tout sauf /labs/*
+	################################################################################
 	@public path / /api/*
 	handle @public {
 		reverse_proxy auth:8081
 	}
 
-	# -------------------------------------------------------
-	# Routes /labs/* protégées
-	# -------------------------------------------------------
+	################################################################################
+	# 2. Routes protégées  — /labs/*
+	################################################################################
 	@labs path /labs/*
 	handle @labs {
-		route {
-			# 1) Vérification d’authentification
-			rewrite * /api/verify
-			reverse_proxy auth:8081 {
-				header_up Cookie {http.request.header.Cookie}
 
-				# -- Définition du matcher de réponse 401/403
-				@unauth status 401 403
-
-				# -- Que faire quand c’est 401/403
-				handle_response @unauth {
-					redir / 302
-				}
-			}
-
-			# 2) Si authentifié → proxy vers l’app « navigateur »
-			uri strip_prefix /labs
-			reverse_proxy navigateur:80
+		# ---- Étape 1 : vérification d’authentification --------------------------
+		forward_auth auth:8081 {
+			uri          /api/verify      # endpoint de check
+			copy_headers Set-Cookie       # propage (ex.) le cookie de session
 		}
+
+		# ---- Étape 2 : si auth OK → service Firefox-VNC ------------------------
+		uri strip_prefix /labs
+
+		# Le service « navigateur » tourne sur un serveur VNC/NoVNC (WebSockets)
+		# Caddy gère WebSocket nativement : pas besoin de config spéciale
+		reverse_proxy navigateur:80
 	}
 
+	# -------------------------------------------------
+	# Encodage gzip (HTML, JS, CSS, etc.)
+	# -------------------------------------------------
 	encode gzip
 }
 
-# Redirection www → apex
+##############################################################################
+# REDIRECTION www → apex
+##############################################################################
 www.zos-academy.fr {
 	redir https://zos-academy.fr{uri} permanent
 }
