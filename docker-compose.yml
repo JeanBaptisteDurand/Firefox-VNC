@@ -5,23 +5,23 @@ services:
     image: dorowu/ubuntu-desktop-lxde-vnc
     container_name: navigateur
     restart: unless-stopped
-    expose:
-      - "80"
+    ports:
+      - "8080:6079"   # juste pour le test
     environment:
       - RESOLUTION=1920x1080
     networks:
       - internal
 
-  caddy:
-    image: caddy:latest
-    container_name: caddy
-    restart: unless-stopped
-    ports:
-      - "6667:80"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-    networks:
-      - internal
+#  caddy:
+#    image: caddy:latest
+#    container_name: caddy
+#    restart: unless-stopped
+#    ports:
+#      - "6667:80"
+#    volumes:
+#      - ./Caddyfile:/etc/caddy/Caddyfile
+#    networks:
+#      - internal
 
 networks:
   internal:
