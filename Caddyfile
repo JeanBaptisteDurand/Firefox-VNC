@@ -1,11 +1,9 @@
 # ----------------------------------------------------------
-# Caddyfile – zos-academy.fr  (redirection automatique si 401)
+# Caddyfile – zos-academy.fr  (avec handle_errors)
 # ----------------------------------------------------------
 
-##############################################################################
-# OPTIONS GLOBALES  (facultatif)
-##############################################################################
 {
+	# Exemple : journaliser dans un fichier plutôt qu’en STDOUT
 	# log {
 	#   output file /var/log/caddy/zos.log
 	# }
@@ -16,42 +14,39 @@
 ##############################################################################
 zos-academy.fr {
 
-	################################################################################
-	# 1. Zone protégée  — /labs  et /labs/*
-	################################################################################
-	@labs path /labs /labs/*
+	########################################################################
+	# Gestion centralisée des 401/403 : on renvoie / (page de login)
+	########################################################################
+	handle_errors {
+		@unauth expression {http.error.status_code} in [401, 403]
+		redir @unauth / 302
+	}
 
+	########################################################################
+	# 1. Zone protégée  — /labs et /labs/*
+	########################################################################
+	@labs path /labs /labs/*
 	handle @labs {
 
-		# ---- Étape 1 : vérification JWT ----------------------------------------
+		# ---- Étape 1 : vérification JWT ------------------------------------
 		forward_auth auth:8081 {
-			uri          /api/verify      # endpoint de check
+			uri          /api/verify
 			copy_headers Set-Cookie
 		}
 
-		# ---- Étape 1bis : si auth NOK → 302 vers la page de login --------------
-		handle_response @unauth {
-			@unauth status 401 403        # toute réponse 401/403 du service auth
-			respond "" 302 {              # on renvoie une 302
-				Location /                # … qui redirige vers /
-			}
-		}
-
-		# ---- Étape 2 : auth OK → service VNC -----------------------------------
-		uri strip_prefix /labs          # nettoie le chemin
-		reverse_proxy navigateur:80     # WebSocket géré nativement
+		# ---- Étape 2 : si auth OK → bureau LXDE/noVNC ----------------------
+		uri strip_prefix /labs
+		reverse_proxy navigateur:80
 	}
 
-	################################################################################
-	# 2. Catch-all  — tout le reste vers le conteneur d’auth
-	################################################################################
+	########################################################################
+	# 2. Catch-all  — toutes les autres routes vers le conteneur d’auth
+	########################################################################
 	handle {
 		reverse_proxy auth:8081
 	}
 
-	# -------------------------------------------------
-	# Encodage gzip (HTML, JS, CSS, …)
-	# -------------------------------------------------
+	# Encodage gzip (HTML, JS, CSS, etc.)
 	encode gzip
 }
 
