@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8">
+<title>Connexion – ZOS Academy</title>
+<style>
+body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#f5f5f5}
+form{background:#fff;padding:2rem;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;flex-direction:column;gap:1rem;min-width:280px}
+input{padding:.6rem;border:1px solid #ccc;border-radius:4px}
+button{padding:.6rem;border:0;border-radius:4px;background:#3b82f6;color:#fff;font-weight:bold;cursor:pointer}
+</style>
+<form action="/api/login" method="post">
+  <h2 style="margin:0;text-align:center">Connexion</h2>
+  <input name="username" placeholder="Utilisateur" required>
+  <input name="password" type="password" placeholder="Mot de passe" required>
+  <button type="submit">Se connecter</button>
+</form>

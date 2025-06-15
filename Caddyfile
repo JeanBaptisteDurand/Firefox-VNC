@@ -1,10 +1,32 @@
-# Domaine principal en HTTPS automatique
 zos-academy.fr {
-    reverse_proxy navigateur:80
-    encode gzip
+
+	# --- Endpoints publics (login page + API) ---------------------
+	@public path / /api/*
+	handle @public {
+		reverse_proxy auth:8081
+	}
+
+	# --- Zone protégée : /labs/**  ---------------------------------
+	@labs path /labs/*
+	handle @labs {
+
+		# 1) Vérification JWT par appel interne /api/verify
+		reverse_proxy auth:8081 {
+			uri /api/verify
+			header_up Cookie {http.request.header.Cookie}
+			handle_response {
+				@unauth status 401 403
+				handle @unauth { redir / 302 }
+			}
+		}
+
+		# 2) Si 200 -> proxy vers noVNC
+		reverse_proxy navigateur:80
+	}
+
+	encode gzip
 }
 
-# Redirige www → domaine nu (SEO & cohérence)
 www.zos-academy.fr {
-    redir https://zos-academy.fr{uri} permanent
+	redir https://zos-academy.fr{uri} permanent
 }

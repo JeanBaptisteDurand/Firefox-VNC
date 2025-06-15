@@ -1,17 +1,35 @@
+version: "3.9"
+
 services:
+  # ----------- noVNC desktop ---------------------------------------
   navigateur:
     image: dorowu/ubuntu-desktop-lxde-vnc:focal
-    expose: [ "80" ]
+    expose: [ "80" ]                 # interne uniquement
     volumes: [ "/dev/shm:/dev/shm" ]
     shm_size: 8g
     environment: [ "RESOLUTION=1920x1080" ]
     networks: [ desktopnet ]
 
+  # ----------- Auth service (Go + Gin) -----------------------------
+  auth:
+    build: ./auth
+    container_name: auth
+    restart: unless-stopped
+    expose: [ "8081" ]
+    environment:
+      - LOGIN_USER=${LOGIN_USER}
+      - LOGIN_PASS=${LOGIN_PASS}
+      - JWT_SECRET=${JWT_SECRET}
+    networks: [ desktopnet ]
+
+  # ----------- Caddy reverse-proxy / TLS ---------------------------
   caddy:
     image: caddy:latest
-    depends_on: [ navigateur ]
+    container_name: caddy
+    restart: unless-stopped
+    depends_on: [ auth ]
     ports:
-      - "443:443"
+      - "443:443"                    # HTTPS only
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
