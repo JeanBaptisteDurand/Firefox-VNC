@@ -6,7 +6,7 @@ services:
     container_name: navigateur
     restart: unless-stopped
     expose:
-      - "6080"
+      - "6079"
     environment:
       - RESOLUTION=1920x1080
     networks:
