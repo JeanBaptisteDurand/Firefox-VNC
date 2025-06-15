@@ -1,0 +1,4 @@
+:80 {
+  reverse_proxy / navigateur:6080
+  encode gzip
+}

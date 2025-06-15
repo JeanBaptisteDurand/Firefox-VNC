@@ -1,0 +1,27 @@
+version: "3"
+
+services:
+  navigateur:
+    image: accetto/ubuntu-vnc-xfce-firefox
+    container_name: navigateur
+    restart: unless-stopped
+    expose:
+      - "6080"  # Seulement accessible en interne par Caddy
+    environment:
+      - VNC_RESOLUTION=1280x800
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "6667:80"  # Serveur HTTP accessible depuis l’extérieur via le port 6667
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - internal
+
+networks:
+  internal:
