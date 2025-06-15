@@ -2,13 +2,13 @@ version: "3"
 
 services:
   navigateur:
-    image: accetto/ubuntu-vnc-xfce-firefox
+    image: dorowu/ubuntu-desktop-lxde-vnc
     container_name: navigateur
     restart: unless-stopped
     expose:
-      - "6080"  # Seulement accessible en interne par Caddy
+      - "6080"
     environment:
-      - VNC_RESOLUTION=1920x1080
+      - RESOLUTION=1920x1080
     networks:
       - internal
 
