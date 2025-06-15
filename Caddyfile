@@ -1,4 +1,5 @@
 zos-academy.fr {
+
 	@public path / /api/*
 	handle @public {
 		reverse_proxy auth:8081
@@ -6,15 +7,21 @@ zos-academy.fr {
 
 	@labs path /labs/*
 	handle @labs {
+
+		# appel interne : /api/verify
 		reverse_proxy auth:8081 {
 			uri /api/verify
 			header_up Cookie {http.request.header.Cookie}
+
 			handle_response {
 				@unauth status 401 403
-				handle @unauth { redir / 302 }
+				handle @unauth {
+					redir / 302
+				}
 			}
 		}
 
+		# si 200 OK -> proxy noVNC
 		reverse_proxy navigateur:80
 	}
 
