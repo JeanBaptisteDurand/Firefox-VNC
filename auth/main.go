@@ -92,10 +92,11 @@ func main() {
 	// Vérification JWT pour Caddy (forward_auth)
 	r.GET("/api/verify", func(c *gin.Context) {
 		if tokenValid(c) {
-			c.Status(http.StatusOK)
+			c.Status(http.StatusOK) // 2xx → accès autorisé
 			return
 		}
-		c.Status(http.StatusUnauthorized) // 401
+		// JWT manquant ou invalide → on renvoie le navigateur vers /
+		c.Redirect(http.StatusFound, "/")
 	})
 
 	log.Fatal(r.Run(":8081"))

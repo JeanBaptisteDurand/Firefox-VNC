@@ -27,11 +27,7 @@ zos-academy.fr {
 		forward_auth auth:8081 {
 			uri          /api/verify
 			copy_headers Set-Cookie
-		}
-
-		handle_response @unauth {
-			@unauth status 401 403
-			redir / 302
+			allow_redirects
 		}
 
 		# ---- Étape 2 : si auth OK → service Firefox-VNC ------------------------
