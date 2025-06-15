@@ -1,33 +1,43 @@
 zos-academy.fr {
 
+	# -------------------------------------------------------
+	# Routes publiques (tout sauf /labs/*)
+	# -------------------------------------------------------
 	@public path / /api/*
 	handle @public {
 		reverse_proxy auth:8081
 	}
 
+	# -------------------------------------------------------
+	# Routes /labs/* protégées
+	# -------------------------------------------------------
 	@labs path /labs/*
 	handle @labs {
+		route {
+			# 1) Vérification d’authentification
+			rewrite * /api/verify
+			reverse_proxy auth:8081 {
+				header_up Cookie {http.request.header.Cookie}
 
-		# appel interne : /api/verify
-		reverse_proxy auth:8081 {
-			uri /api/verify
-			header_up Cookie {http.request.header.Cookie}
-
-			handle_response {
+				# -- Définition du matcher de réponse 401/403
 				@unauth status 401 403
-				handle @unauth {
+
+				# -- Que faire quand c’est 401/403
+				handle_response @unauth {
 					redir / 302
 				}
 			}
-		}
 
-		# si 200 OK -> proxy noVNC
-		reverse_proxy navigateur:80
+			# 2) Si authentifié → proxy vers l’app « navigateur »
+			uri strip_prefix /labs
+			reverse_proxy navigateur:80
+		}
 	}
 
 	encode gzip
 }
 
+# Redirection www → apex
 www.zos-academy.fr {
 	redir https://zos-academy.fr{uri} permanent
 }
