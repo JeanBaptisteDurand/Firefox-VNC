@@ -1,24 +1,45 @@
-version: "3"
+version: "3.9"
 
 services:
   navigateur:
-    image: dorowu/ubuntu-desktop-lxde-vnc
-    ports:      [ "8080:80" ]
-    volumes:    [ "/dev/shm:/dev/shm" ]
-    shm_size:   8g
+    image: dorowu/ubuntu-desktop-lxde-vnc:focal
+    container_name: navigateur
+    restart: unless-stopped
+
+    expose:
+      - "80"
+
+    volumes:
+      - /dev/shm:/dev/shm
+    shm_size: 8g
     environment:
       - RESOLUTION=1920x1080
 
-#  caddy:
-#    image: caddy:latest
-#    container_name: caddy
-#    restart: unless-stopped
-#    ports:
-#      - "6667:80"
-#    volumes:
-#      - ./Caddyfile:/etc/caddy/Caddyfile
-#    networks:
-#      - internal
+    networks:
+      - desktopnet
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    depends_on:
+      - navigateur
+
+    ports:
+      - "8080:80"
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+    networks:
+      - desktopnet
+
+volumes:
+  caddy_data:
+  caddy_config:
 
 networks:
-  internal:
+  desktopnet:
+    name: desktopnet
