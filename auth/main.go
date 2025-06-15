@@ -62,6 +62,13 @@ func main() {
 		c.Redirect(http.StatusFound, "/")          // mauvais identifiants
 	})
 
+	// Déconnexion
+	r.GET("/dc", func(c *gin.Context) {
+		// MaxAge négatif ➜ efface le cookie
+		c.SetCookie("token", "", -1, "/", "", true, true)
+		c.Redirect(http.StatusFound, "/")
+	})
+
 	// Vérification JWT pour Caddy
 	r.GET("/api/verify", func(c *gin.Context) {
 		if tokenValid(c) {
