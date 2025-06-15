@@ -16,7 +16,15 @@ zos-academy.fr {
         }
 
         uri strip_prefix /labs
-        reverse_proxy navigateur:80
+        reverse_proxy navigateur:80 {
+            # -- Désactive tout cache côté client ---------
+            header_down Cache-Control "no-store, max-age=0, must-revalidate"
+            header_down Pragma "no-cache"
+            header_down Expires "0"
+            # -- Supprime les en-têtes de validation -------
+            header_down -ETag
+            header_down -Last-Modified
+        }
     }
 
     handle {
@@ -24,8 +32,4 @@ zos-academy.fr {
     }
 
     encode gzip
-}
-
-www.zos-academy.fr {
-    redir https://zos-academy.fr{uri} permanent
 }
