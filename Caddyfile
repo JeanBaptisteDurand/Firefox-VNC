@@ -1,5 +1,5 @@
 zos-academy.fr {
-  @labs path /labs*
+  @labs path /labs /labs/*
 
   handle @labs {
     forward_auth auth:8081 {
