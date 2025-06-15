@@ -1,41 +1,31 @@
-# ----------------------------------------------------------
-# Caddyfile – zos-academy.fr (version corrigée sans erreur)
-# ----------------------------------------------------------
-
 zos-academy.fr {
+  @labs path /labs*
 
-	@labs path /labs /labs/*
+  handle @labs {
+    forward_auth auth:8081 {
+      uri /api/verify
+      copy_headers Set-Cookie
+    }
+    uri strip_prefix /labs
+    reverse_proxy navigateur:80
+  }
 
-	handle @labs {
-		# Étape 1 — Vérifie l'auth via l'API sur auth:8081
-		forward_auth auth:8081 {
-			uri /api/verify
-			copy_headers Set-Cookie
-		}
+  handle_errors 401 {
+    @unauth {
+      expression {err.status_code} == 401
+    }
+    handle @unauth {
+      redir / 302
+    }
+  }
 
-		# Étape 2 — Si auth OK, reverse_proxy vers Firefox/noVNC
-		uri strip_prefix /labs
-		reverse_proxy navigateur:80
-	}
+  handle {
+    reverse_proxy auth:8081
+  }
 
-	# Redirige les erreurs 401 de /labs vers /
-	handle_errors {
-		@unauth {
-			expression `{http.error.status_code} == 401`
-		}
-		handle @unauth {
-			redir /
-		}
-	}
-
-	# Toutes les autres routes → service auth (login, logout)
-	handle {
-		reverse_proxy auth:8081
-	}
-
-	encode gzip
+  encode gzip
 }
 
 www.zos-academy.fr {
-	redir https://zos-academy.fr{uri} permanent
+  redir https://zos-academy.fr{uri} permanent
 }
