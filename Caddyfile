@@ -1,54 +1,41 @@
 # ----------------------------------------------------------
-# Caddyfile – zos-academy.fr  (variant 2 + matcher élargi)
+# Caddyfile – zos-academy.fr (version corrigée sans erreur)
 # ----------------------------------------------------------
 
-##############################################################################
-# OPTIONS GLOBALES (facultatif)
-##############################################################################
-{
-	# Exemple : journaliser dans un fichier plutôt qu’en STDOUT
-	# log {
-	#   output file /var/log/caddy/zos.log
-	# }
-}
-
-##############################################################################
-# SITE PRINCIPAL
-##############################################################################
 zos-academy.fr {
 
-	################################################################################
-	# 1. Zone protégée  — /labs et /labs/*
-	################################################################################
 	@labs path /labs /labs/*
-	handle @labs {
 
-		# ---- Étape 1 : vérification d’authentification --------------------------
+	handle @labs {
+		# Étape 1 — Vérifie l'auth via l'API sur auth:8081
 		forward_auth auth:8081 {
-			uri          /api/verify
+			uri /api/verify
 			copy_headers Set-Cookie
-			allow_redirects
 		}
 
-		# ---- Étape 2 : si auth OK → service Firefox-VNC ------------------------
+		# Étape 2 — Si auth OK, reverse_proxy vers Firefox/noVNC
 		uri strip_prefix /labs
 		reverse_proxy navigateur:80
 	}
 
-	################################################################################
-	# 2. Catch-all  — toutes les autres routes vers le conteneur d’auth
-	################################################################################
+	# Redirige les erreurs 401 de /labs vers /
+	handle_errors {
+		@unauth {
+			expression `{http.error.status_code} == 401`
+		}
+		handle @unauth {
+			redir /
+		}
+	}
+
+	# Toutes les autres routes → service auth (login, logout)
 	handle {
 		reverse_proxy auth:8081
 	}
 
-	# Encodage gzip (HTML, JS, CSS, etc.)
 	encode gzip
 }
 
-##############################################################################
-# REDIRECTION www → apex
-##############################################################################
 www.zos-academy.fr {
 	redir https://zos-academy.fr{uri} permanent
 }
