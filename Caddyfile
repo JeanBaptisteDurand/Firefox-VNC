@@ -1,31 +1,43 @@
+# -------------------------------------------------------------------
+# Serveur principal : https://zos-academy.fr
+# -------------------------------------------------------------------
 zos-academy.fr {
-  @labs path /labs /labs/*
 
-  handle @labs {
-    forward_auth auth:8081 {
-      uri /api/verify
-      copy_headers Set-Cookie
-    }
-    uri strip_prefix /labs
-    reverse_proxy navigateur:80
-  }
+	# ------------------ Matchers -----------------------------------
+	@labs      path   /labs*        # Routes protégées
+	@unauth401 status 401           # Réponses 401 de l’auth gateway
 
-  handle_errors 401 {
-    @unauth {
-      expression {err.status_code} == 401
-    }
-    handle @unauth {
-      redir / 302
-    }
-  }
+	# ------------------ Zone protégée ------------------------------
+	handle @labs {
+		# Appel d’authentification JWT
+		forward_auth auth:8081 {
+			uri /api/verify
+			copy_headers Set-Cookie     # (optionnel)
 
-  handle {
-    reverse_proxy auth:8081
-  }
+			# Si /api/verify répond 401 → rediriger vers la racine (= page de login)
+			handle_response @unauth401 {
+				redir * / 302
+			}
+		}
 
-  encode gzip
+		# Requête authentifiée : on retire /labs puis on proxy vers le bureau distant
+		uri strip_prefix /labs
+		reverse_proxy navigateur:80
+	}
+
+	# ------------------ Reste du site ------------------------------
+	# Pages publiques (login, logout…) gérées par le service auth
+	handle {
+		reverse_proxy auth:8081
+	}
+
+	# Compression gzip
+	encode gzip
 }
 
+# -------------------------------------------------------------------
+# Sous-domaine www → redirection vers l’apex
+# -------------------------------------------------------------------
 www.zos-academy.fr {
-  redir https://zos-academy.fr{uri} permanent
+	redir https://zos-academy.fr{uri} permanent
 }
