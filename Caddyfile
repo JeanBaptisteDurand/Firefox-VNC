@@ -1,43 +1,43 @@
-# -------------------------------------------------------------------
-# Serveur principal : https://zos-academy.fr
-# -------------------------------------------------------------------
+# ---------------------------------------------------------------
+#  https://zos-academy.fr — zone /labs protégée par forward_auth
+# ---------------------------------------------------------------
 zos-academy.fr {
 
-	# ------------------ Matchers -----------------------------------
-	@labs      path   /labs*        # Routes protégées
-	@unauth401 status 401           # Réponses 401 de l’auth gateway
+	# ----- URLs protégées ---------------------------------------
+	@labs path /labs*
 
-	# ------------------ Zone protégée ------------------------------
 	handle @labs {
-		# Appel d’authentification JWT
+
+		# ---------- Authentification JWT ------------------------
 		forward_auth auth:8081 {
 			uri /api/verify
-			copy_headers Set-Cookie     # (optionnel)
+			copy_headers Set-Cookie      # optionnel
 
-			# Si /api/verify répond 401 → rediriger vers la racine (= page de login)
-			handle_response @unauth401 {
-				redir * / 302
+			# Si /api/verify renvoie 401 → on transforme en redirection 302 vers /
+			handle_response {
+				status      401           # on ne traite QUE les 401
+				header      Location /
+				status_code 302           # nouveau code de réponse
+				body        ""            # corps vide (facultatif)
 			}
 		}
 
-		# Requête authentifiée : on retire /labs puis on proxy vers le bureau distant
+		# Requête autorisée : on retire /labs puis on proxifie
 		uri strip_prefix /labs
 		reverse_proxy navigateur:80
 	}
 
-	# ------------------ Reste du site ------------------------------
-	# Pages publiques (login, logout…) gérées par le service auth
+	# ----- Autres routes (login, logout, assets publics…) -------
 	handle {
 		reverse_proxy auth:8081
 	}
 
-	# Compression gzip
 	encode gzip
 }
 
-# -------------------------------------------------------------------
-# Sous-domaine www → redirection vers l’apex
-# -------------------------------------------------------------------
+# ---------------------------------------------------------------
+#  www → apex
+# ---------------------------------------------------------------
 www.zos-academy.fr {
 	redir https://zos-academy.fr{uri} permanent
 }
