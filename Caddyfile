@@ -1,16 +1,11 @@
 zos-academy.fr {
-
-	# --- Endpoints publics (login page + API) ---------------------
 	@public path / /api/*
 	handle @public {
 		reverse_proxy auth:8081
 	}
 
-	# --- Zone protégée : /labs/**  ---------------------------------
 	@labs path /labs/*
 	handle @labs {
-
-		# 1) Vérification JWT par appel interne /api/verify
 		reverse_proxy auth:8081 {
 			uri /api/verify
 			header_up Cookie {http.request.header.Cookie}
@@ -20,7 +15,6 @@ zos-academy.fr {
 			}
 		}
 
-		# 2) Si 200 -> proxy vers noVNC
 		reverse_proxy navigateur:80
 	}
 
