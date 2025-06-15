@@ -1,3 +1,4 @@
 LOGIN_USER=xx
 LOGIN_PASS=xx
 JWT_SECRET=xx
+COOKIE_DOMAIN=zos-academy.fr

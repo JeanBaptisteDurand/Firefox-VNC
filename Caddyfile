@@ -29,6 +29,11 @@ zos-academy.fr {
 			copy_headers Set-Cookie
 		}
 
+		handle_response @unauth {
+			@unauth status 401 403
+			redir / 302
+		}
+
 		# ---- Étape 2 : si auth OK → service Firefox-VNC ------------------------
 		uri strip_prefix /labs
 		reverse_proxy navigateur:80

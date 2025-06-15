@@ -1,3 +1,5 @@
+// main.go — version corrigée (suppression fiable du cookie)
+
 package main
 
 import (
@@ -15,19 +17,33 @@ import (
 var loginPage []byte
 
 var (
-	user      = os.Getenv("LOGIN_USER")
-	pass      = os.Getenv("LOGIN_PASS")
-	secretKey = []byte(os.Getenv("JWT_SECRET"))
+	user         = os.Getenv("LOGIN_USER")
+	pass         = os.Getenv("LOGIN_PASS")
+	secretKey    = []byte(os.Getenv("JWT_SECRET"))
+	cookieDomain = os.Getenv("COOKIE_DOMAIN")
 )
+
+// --------------------------------------------------------------------
+// Auth helpers
+// --------------------------------------------------------------------
 
 func issueToken(c *gin.Context) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": user,
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
 	})
-	s, _ := t.SignedString(secretKey)
-	// Secure & HttpOnly: le cookie n'est accessible ni en HTTP non-TLS ni en JS
-	c.SetCookie("token", s, 86400, "/", "", true, true)
+	signed, _ := t.SignedString(secretKey)
+
+	// Tous les attributs (Path, Domain, SameSite) devront être identiques
+	// quand on supprimera le cookie.
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("token", signed, 86400, "/", cookieDomain, true, true)
+}
+
+func clearToken(c *gin.Context) {
+	// Reproduire EXACTEMENT les attributs pour écraser le même cookie
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("token", "", -1, "/", cookieDomain, true, true)
 }
 
 func tokenValid(c *gin.Context) bool {
@@ -38,6 +54,10 @@ func tokenValid(c *gin.Context) bool {
 	_, err = jwt.Parse(t, func(tok *jwt.Token) (interface{}, error) { return secretKey, nil })
 	return err == nil
 }
+
+// --------------------------------------------------------------------
+// Main
+// --------------------------------------------------------------------
 
 func main() {
 	if user == "" || pass == "" {
@@ -59,35 +79,23 @@ func main() {
 			c.Redirect(http.StatusFound, "/labs/") // 302 vers la zone protégée
 			return
 		}
-		c.Redirect(http.StatusFound, "/")          // mauvais identifiants
+		c.Redirect(http.StatusFound, "/") // mauvais identifiants
 	})
 
 	// Déconnexion
 	r.GET("/dc", func(c *gin.Context) {
-		// Suppression fiable du cookie
-		c.SetCookie(
-			"token",
-			"",
-			-1,                         // MaxAge négatif = delete now
-			"/",
-			"",                         // host-only cookie
-			true,                       // Secure
-			true,                       // HttpOnly
-		)
-		// Header Clear-Site-Data optionnel
+		clearToken(c)
 		c.Header("Clear-Site-Data", "\"cookies\"")
-
-		// Redirection propre
 		c.Redirect(http.StatusFound, "/")
 	})
 
-	// Vérification JWT pour Caddy
+	// Vérification JWT pour Caddy (forward_auth)
 	r.GET("/api/verify", func(c *gin.Context) {
 		if tokenValid(c) {
 			c.Status(http.StatusOK)
 			return
 		}
-		c.Status(http.StatusUnauthorized)   // ← 401 « sec » mais pas de redirection
+		c.Status(http.StatusUnauthorized) // 401
 	})
 
 	log.Fatal(r.Run(":8081"))
