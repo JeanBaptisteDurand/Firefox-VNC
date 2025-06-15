@@ -1,43 +1,31 @@
-# ---------------------------------------------------------------
-#  https://zos-academy.fr — zone /labs protégée par forward_auth
-# ---------------------------------------------------------------
 zos-academy.fr {
 
-	# ----- URLs protégées ---------------------------------------
-	@labs path /labs*
+    @labs path /labs*
 
-	handle @labs {
+    handle @labs {
+        forward_auth auth:8081 {
+            uri /api/verify
+            copy_headers Set-Cookie
 
-		# ---------- Authentification JWT ------------------------
-		forward_auth auth:8081 {
-			uri /api/verify
-			copy_headers Set-Cookie      # optionnel
+            @unauth401 {
+                status 401
+            }
+            handle_response @unauth401 {
+                redir * /
+            }
+        }
 
-			# Si /api/verify renvoie 401 → on transforme en redirection 302 vers /
-			handle_response {
-				status      401           # on ne traite QUE les 401
-				header      Location /
-				status_code 302           # nouveau code de réponse
-				body        ""            # corps vide (facultatif)
-			}
-		}
+        uri strip_prefix /labs
+        reverse_proxy navigateur:80
+    }
 
-		# Requête autorisée : on retire /labs puis on proxifie
-		uri strip_prefix /labs
-		reverse_proxy navigateur:80
-	}
+    handle {
+        reverse_proxy auth:8081
+    }
 
-	# ----- Autres routes (login, logout, assets publics…) -------
-	handle {
-		reverse_proxy auth:8081
-	}
-
-	encode gzip
+    encode gzip
 }
 
-# ---------------------------------------------------------------
-#  www → apex
-# ---------------------------------------------------------------
 www.zos-academy.fr {
-	redir https://zos-academy.fr{uri} permanent
+    redir https://zos-academy.fr{uri} permanent
 }
