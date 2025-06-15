@@ -64,23 +64,21 @@ func main() {
 
 	// Déconnexion
 	r.GET("/dc", func(c *gin.Context) {
-		//  ❱❱ même nom, même path, même Secure/HttpOnly, SameSite=Lax (valeur par défaut)
-		//     MaxAge = 0 OU -1 + Expires passé ➜ suppression fiable
+		// Suppression fiable du cookie
 		c.SetCookie(
 			"token",
 			"",
-			0,                           // 0 = supprime immédiatement
+			-1,                         // MaxAge négatif = delete now
 			"/",
-			"",                          // host-only cookie (même chose qu’à la création)
-			true,                        // Secure
-			true,                        // HttpOnly
+			"",                         // host-only cookie
+			true,                       // Secure
+			true,                       // HttpOnly
 		)
-		// Pour les navigateurs récalcitrants, on peut ajouter un en-tête Clear-Site-Data
+		// Header Clear-Site-Data optionnel
 		c.Header("Clear-Site-Data", "\"cookies\"")
 
-		// Petit corps HTML pour les cas où un 302 « vide » est bloqué
-		c.Data(http.StatusFound, "text/html; charset=utf-8",
-			[]byte(`<html><head><meta http-equiv="refresh" content="0;url=/"></head></html>`))
+		// Redirection propre
+		c.Redirect(http.StatusFound, "/")
 	})
 
 	// Vérification JWT pour Caddy
