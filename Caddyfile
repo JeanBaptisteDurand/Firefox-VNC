@@ -1,17 +1,14 @@
 # ----------------------------------------------------------
-# Caddyfile – zos-academy.fr (variant 2)
+# Caddyfile – zos-academy.fr  (redirection automatique si 401)
 # ----------------------------------------------------------
 
 ##############################################################################
-# OPTIONS GLOBALES (facultatif, mais conseillé pour la lisibilité)
+# OPTIONS GLOBALES  (facultatif)
 ##############################################################################
 {
-	# Exemple : journaliser dans un fichier plutôt qu’en STDOUT
 	# log {
 	#   output file /var/log/caddy/zos.log
 	# }
-
-	# Caddy ajuste automatiquement la compression, HTTP/3, etc.
 }
 
 ##############################################################################
@@ -20,34 +17,40 @@
 zos-academy.fr {
 
 	################################################################################
-	# 1. Zone protégée  — uniquement /labs/*
+	# 1. Zone protégée  — /labs  et /labs/*
 	################################################################################
-	@labs path /labs/*
+	@labs path /labs /labs/*
+
 	handle @labs {
 
-		# ---- Étape 1 : vérification d’authentification --------------------------
+		# ---- Étape 1 : vérification JWT ----------------------------------------
 		forward_auth auth:8081 {
-			uri          /api/verify      # endpoint de check JWT
-			copy_headers Set-Cookie       # propage (ex.) le cookie de session
+			uri          /api/verify      # endpoint de check
+			copy_headers Set-Cookie
 		}
 
-		# ---- Étape 2 : si auth OK → service Firefox-VNC ------------------------
-		uri strip_prefix /labs
+		# ---- Étape 1bis : si auth NOK → 302 vers la page de login --------------
+		handle_response @unauth {
+			@unauth status 401 403        # toute réponse 401/403 du service auth
+			respond "" 302 {              # on renvoie une 302
+				Location /                # … qui redirige vers /
+			}
+		}
 
-		# Le service « navigateur » tourne derrière un serveur VNC/NoVNC
-		# Caddy gère WebSocket nativement : pas besoin de config spéciale
-		reverse_proxy navigateur:80
+		# ---- Étape 2 : auth OK → service VNC -----------------------------------
+		uri strip_prefix /labs          # nettoie le chemin
+		reverse_proxy navigateur:80     # WebSocket géré nativement
 	}
 
 	################################################################################
-	# 2. Catch-all  — toutes les autres routes vers le conteneur d’auth
+	# 2. Catch-all  — tout le reste vers le conteneur d’auth
 	################################################################################
 	handle {
 		reverse_proxy auth:8081
 	}
 
 	# -------------------------------------------------
-	# Encodage gzip (HTML, JS, CSS, etc.)
+	# Encodage gzip (HTML, JS, CSS, …)
 	# -------------------------------------------------
 	encode gzip
 }
