@@ -1,45 +1,64 @@
 version: "3.9"
 
 services:
-  # ----------- noVNC desktop ---------------------------------------
-  navigateur:
-    image: dorowu/ubuntu-desktop-lxde-vnc:focal
-    expose: [ "80" ]                 # interne uniquement
-    volumes: [ "/dev/shm:/dev/shm" ]
-    shm_size: 8g
-    environment: [ "RESOLUTION=1920x1080" ]
-    networks: [ desktopnet ]
+  # ---------- Étape 0 : bootstrap Cloudflare -----------------------
+  cf-bootstrap:
+    build: ./cf-bootstrap
+    environment:
+      - DOMAIN=${DOMAIN}
+      - CF_ACCOUNT_ID=${CF_ACCOUNT_ID}
+      - CF_API_TOKEN=${CF_API_TOKEN}
+      - JWT_SECRET=${JWT_SECRET:-}
+    volumes:
+      - cfshared:/shared
+    networks: [desktopnet]
+    restart: "no"
 
-  # ----------- Auth service (Go + Gin) -----------------------------
+  # ---------- Tunnel Cloudflare (remotely-managed) -----------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    depends_on: [cf-bootstrap, caddy]
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN_FILE=/etc/cloudflared/env
+    volumes:
+      - cfshared:/etc/cloudflared
+    networks: [desktopnet]
+    restart: unless-stopped
+
+  # ---------- Caddy ------------------------------------------------
+  caddy:
+    image: caddy:latest
+    depends_on: [auth]
+    expose: ["80"]        # plus de port public
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [desktopnet]
+    restart: unless-stopped
+
+  # ---------- Auth -------------------------------------------------
   auth:
     build: ./auth
-    container_name: auth
-    restart: unless-stopped
-    expose: [ "8081" ]
+    expose: ["8081"]
     environment:
       - LOGIN_USER=${LOGIN_USER}
       - LOGIN_PASS=${LOGIN_PASS}
-      - JWT_SECRET=${JWT_SECRET}
-    networks: [ desktopnet ]
-
-  # ----------- Caddy reverse-proxy / TLS ---------------------------
-  caddy:
-    image: caddy:latest
-    container_name: caddy
+      - JWT_SECRET=${JWT_SECRET:-}
+      - COOKIE_DOMAIN=${DOMAIN}
+    networks: [desktopnet]
     restart: unless-stopped
-    depends_on: [ auth ]
-    ports:
-      - "443:443"                    # HTTPS only
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks: [ desktopnet ]
+
+  # ---------- noVNC desktop ---------------------------------------
+  navigateur:
+    image: dorowu/ubuntu-desktop-lxde-vnc:focal
+    expose: ["80"]
+    shm_size: 8g
+    environment: ["RESOLUTION=1920x1080"]
+    volumes: ["/dev/shm:/dev/shm"]
+    networks: [desktopnet]
 
 networks:
   desktopnet:
-    name: desktopnet
 
 volumes:
-  caddy_data:
-  caddy_config:
+  cfshared:
