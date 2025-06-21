@@ -1,4 +1,4 @@
-# 🦊 Firefox Remote GUI over Web (Docker + noVNC + Caddy)
+# 🦊 Firefox Remote GUI over Web (Docker + noVNC + Caddy)
 
 Exécutez un navigateur **Firefox** dans un environnement graphique complet directement sur votre VPS ; accédez‑y ensuite depuis **n’importe quel navigateur web** — sans installer de client VNC natif.
 
@@ -6,44 +6,48 @@ Exécutez un navigateur **Firefox** dans un environnement graphique complet dire
 
 ## 📑 Sommaire
 
-1. [Présentation](#présentation)
-2. [Fonctionnalités principales](#fonctionnalités-principales)
-3. [Définitions](#définitions)
-4. [Contenu du dépôt](#contenu-du-dépôt)
-5. [Démarrage rapide](#démarrage-rapide)
-6. [Connexion & Déconnexion](#connexion--déconnexion)
-7. [Flux d’authentification](#flux-dauthentification)
-8. [Variables d’environnement](#variables-denvironnement)
-9. [Sécurisation supplémentaire](#sécurisation-supplémentaire)
-10. [Prochaines étapes](#prochaines-étapes)
+- [V1](#v1)  
+  1. [Présentation](#présentation)  
+  2. [Fonctionnalités principales](#fonctionnalités-principales)  
+  3. [Définitions](#définitions)  
+  4. [Contenu du dépôt](#contenu-du-dépôt)  
+  5. [Démarrage rapide](#démarrage-rapide)  
+  6. [Connexion & Déconnexion](#connexion--déconnexion)  
+  7. [Flux d’authentification](#flux-dauthentification)  
+  8. [Variables d’environnement](#variables-denvironnement)  
+  9. [Sécurisation supplémentaire](#sécurisation-supplémentaire)  
+- [V2](#v2)  
+  10. [Cloudflare Tunnel – Publication sécurisée](#10-cloudflare-tunnel--publication-sécurisée)  
+  11. [Prochaines étapes](#11-prochaines-étapes)  
+
+---
+## V1
+
+### 1. Présentation
+
+Ce dépôt fournit tout le nécessaire (Docker Compose, images prêtes à l’emploi et reverse‑proxy) pour lancer une session graphique **XFCE + Firefox** à distance ; l’interface VNC est encapsulée dans **noVNC** puis exposée en HTTPS via **Caddy**. Résultat : un « Firefox dans le cloud » accessible à l’URL de votre serveur.
 
 ---
 
-## Présentation
-
-Ce dépôt fournit tout le nécessaire (Docker Compose, images prêtes à l’emploi et reverse‑proxy) pour lancer une session graphique **XFCE + Firefox** à distance ; l’interface VNC est encapsulée dans **noVNC** puis exposée en HTTPS via **Caddy**. Résultat : un « Firefox dans le cloud » accessible à l’URL de votre serveur.
-
----
-
-## Fonctionnalités principales
+### 2. Fonctionnalités principales
 
 | Composant | Rôle |
 |-----------|------|
-| **Docker Compose** | Orchestration et mise en réseau automatique des conteneurs |
-| **Conteneur XFCE / Firefox / VNC / noVNC** | • XFCE : environnement de bureau léger<br>• Firefox : navigateur intégré<br>• VNC : partage du bureau<br>• noVNC : client HTML5 côté navigateur |
-| **Caddy (Reverse‑Proxy)** | • Sert l’interface web (<code>https://votre‑domaine</code>)<br>• Gère le TLS automatique (LetsEncrypt)<br>• Passe les WebSockets (VNC) & applique l’authentification |
+| **Docker Compose** | Orchestration et mise en réseau automatique des conteneurs |
+| **Conteneur XFCE / Firefox / VNC / noVNC** | • XFCE : environnement de bureau léger<br>• Firefox : navigateur intégré<br>• VNC : partage du bureau<br>• noVNC : client HTML5 côté navigateur |
+| **Caddy (Reverse‑Proxy)** | • Sert l’interface web (<code>https://votre‑domaine</code>)<br>• Gère le TLS automatique (LetsEncrypt)<br>• Passe les WebSockets (VNC) & applique l’authentification |
 
 ---
 
-## Définitions
+### 3. Définitions
 
-### 🖥️ VNC (Virtual Network Computing)
+#### 🖥️ VNC (Virtual Network Computing)
 Protocole permettant de **voir et contrôler** un bureau distant. Fonctionne généralement sur le port **5901** (TCP).
 
-### 🌍 noVNC
+#### 🌍 noVNC
 Client VNC **100 % HTML5**. Convertit le flux VNC en WebSocket (via **Websockify**) pour une utilisation directe dans un navigateur.
 
-### 🧰 Caddy
+#### 🧰 Caddy
 Serveur web / reverse‑proxy moderne qui :
 
 * sert l’interface à <code>https://votre‑domaine</code> ;
@@ -52,9 +56,9 @@ Serveur web / reverse‑proxy moderne qui :
 
 ---
 
-## Contenu du dépôt
+### 4. Contenu du dépôt
 
-| Service | Description | Port interne |
+| Service | Description | Port interne |
 |---------|-------------|--------------|
 | **navigateur** | Ubuntu + Firefox + VNC + noVNC | 80 |
 | **auth** | API Gin + page de login, émet un JWT stocké en cookie <code>HttpOnly</code> | 8081 |
@@ -64,7 +68,7 @@ Serveur web / reverse‑proxy moderne qui :
 
 ---
 
-## Démarrage rapide
+### 5. Démarrage rapide
 
 ```bash
 # 1) Variables d’environnement (à adapter)
@@ -78,7 +82,7 @@ docker compose up -d
 
 ---
 
-## Connexion & Déconnexion
+### 6. Connexion & Déconnexion
 
 1. Ouvrez <code>https://votre‑domaine</code> → page de login.
 2. Saisissez **LOGIN_USER / LOGIN_PASS** → redirection vers <code>/labs/</code>.
@@ -88,7 +92,7 @@ docker compose up -d
 
 ---
 
-## Flux d’authentification
+### 7. Flux d’authentification
 
 ```mermaid
 sequenceDiagram
@@ -114,9 +118,9 @@ sequenceDiagram
 
 ---
 
-## Variables d’environnement
+### 8. Variables d’environnement
 
-| Variable | Par défaut | Description |
+| Variable | Par défaut | Description |
 |----------|------------|-------------|
 | `LOGIN_USER` | — | Nom d’utilisateur autorisé |
 | `LOGIN_PASS` | — | Mot de passe correspondant |
@@ -124,7 +128,7 @@ sequenceDiagram
 
 ---
 
-## Sécurisation supplémentaire
+### 9. Sécurisation supplémentaire
 
 ```bash
 # Pare‑feu UFW
@@ -136,13 +140,31 @@ sudo ufw enable
 
 ---
 
-## Prochaines étapes
+## V2
 
-* Crypter les transactions
-* Ajouter un frontend amélioré pour la page de login
-* Packager l’image Docker « navigateur » sur Docker Hub
-* Ajouter des tests CI (GitHub Actions)
-* Readme sur no cache des reponses
+### 10. Cloudflare Tunnel – Publication sécurisée
+
+Depuis la V2, le service n’expose **plus aucun port public** : tout transite par un **Cloudflare Tunnel** managé automatiquement.
+
+1. **Bootstrap (conteneur `cf-bootstrap`)** : à chaque `docker compose up`, un script Shell :
+   * récupère ou crée le tunnel « auto‑tunnel » via l’API Cloudflare ;
+   * télécharge le *run‑token*, prépare `config.yml` ;
+   * crée/actualise un record **CNAME proxifié** (<code>zos‑academy.fr → &lt;tunnel-id&gt;.cfargotunnel.com</code>).
+2. **cloudflared** monte ensuite le tunnel ; 4 connexions QUIC sont établies vers les POPs les plus proches (Paris : *cdg0x*).
+3. Le trafic HTTPS public frappe Cloudflare ➜ est routé via le tunnel ➜ atteint **Caddy** en HTTP clair (port 80) ➜ passe l’auth `forward_auth` ➜ est proxifié vers noVNC.
+
+**Avantages** :
+
+| 🔒 Sécurité | 🚀 Simplicité | 💰 Coût |
+|-------------|--------------|---------|
+| Aucun port ouvert sur le VPS<br>Mitigation DDoS / WAF optionnels | Pas de DNS A/AAAA à gérer, certif TLS auto côté edge | Gratuit jusqu’à 100 tunnels et 100 000 requêtes/jour |
 
 ---
 
+### 11. Prochaines étapes
+
+* Ajouter des headers de sécurité CSP/COEP dans Caddy.
+* Activer le mode **Zero‑Trust Access** (JWT Cloudflare) au lieu de l’auth locale.
+* Publier l’image *navigateur* sur Docker Hub.
+* CI/CD : build & lint Go + tests e2e (Playwright).
+* Documentation EN + FR.
