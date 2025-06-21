@@ -7,19 +7,19 @@ Exécutez un navigateur **Firefox** dans un environnement graphique complet dire
 ## 📑 Sommaire
 
 - [V1](#v1)  
-  1. [Présentation](#présentation)  
-  2. [Fonctionnalités principales](#fonctionnalités-principales)  
-  3. [Définitions](#définitions)  
-  4. [Contenu du dépôt](#contenu-du-dépôt)  
-  5. [Démarrage rapide](#démarrage-rapide)  
-  6. [Connexion & Déconnexion](#connexion--déconnexion)  
-  7. [Flux d’authentification](#flux-dauthentification)  
-  8. [Variables d’environnement](#variables-denvironnement)  
-  9. [Sécurisation supplémentaire](#sécurisation-supplémentaire)  
+  1. [Présentation](#1-présentation)  
+  2. [Fonctionnalités principales](#2-fonctionnalités-principales)  
+  3. [Définitions](#3-définitions)  
+  4. [Contenu du dépôt](#4-contenu-du-dépôt)  
+  5. [Démarrage rapide](#5-démarrage-rapide)  
+  6. [Connexion & Déconnexion](#6-connexion--déconnexion)  
+  7. [Flux d’authentification](#7-flux-dauthentification)  
+  8. [Variables d’environnement](#8-variables-denvironnement)  
+  9. [Sécurisation supplémentaire](#9-sécurisation-supplémentaire)  
 - [V2](#v2)  
   10. [Cloudflare Tunnel – Publication sécurisée](#10-cloudflare-tunnel--publication-sécurisée)  
-  11. [Prochaines étapes](#11-prochaines-étapes)  
-
+  11. [Prochaines étapes](#11-prochaines-étapes)
+  
 ---
 ## V1
 
