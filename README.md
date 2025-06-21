@@ -163,6 +163,8 @@ Depuis la V2, le service n’expose **plus aucun port public** : tout transite
 
 ### 11. Prochaines étapes
 
+* Crypter les call + websocket en plus du TLS via une cle partager entre le front et le back
+* Rajouter un Front de connection
 * Ajouter des headers de sécurité CSP/COEP dans Caddy.
 * Activer le mode **Zero‑Trust Access** (JWT Cloudflare) au lieu de l’auth locale.
 * Publier l’image *navigateur* sur Docker Hub.
