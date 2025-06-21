@@ -1,28 +1,22 @@
-{
-	# Aucun TLS local : on laisse Cloudflare Edge gérer HTTPS
-	auto_https off
+{                 # ← bloc global (doit être en 1re position)
+	auto_https off # on laisse Cloudflare Edge faire le TLS
 }
 
-{env.DOMAIN} {
+zos-academy.fr {  # ← bloc site
 
-	# ── Section protégée /labs ────────────────────────────────
-	@labs_path path /labs*
+	@labs path /labs*
 
-	handle @labs_path {
-
-		# Vérification JWT auprès du service d’auth
+	handle @labs {
 		forward_auth auth:8081 {
-			uri /api/verify            # endpoint de vérification
-			copy_headers Set-Cookie    # recopie l’éventuel Set-Cookie
+			uri /api/verify
+			copy_headers Set-Cookie
 
-			# ↴ Interception des 401 pour rediriger vers /
 			@unauth status 401
 			handle_response @unauth {
 				redir / 302
 			}
 		}
 
-		# Supprime /labs du chemin puis proxy vers le bureau distant
 		uri strip_prefix /labs
 		reverse_proxy navigateur:80 {
 			header_down Cache-Control "no-store, max-age=0, must-revalidate"
@@ -33,7 +27,6 @@
 		}
 	}
 
-	# ── Reste du site : sert l’interface de login ─────────────
 	handle {
 		reverse_proxy auth:8081
 	}

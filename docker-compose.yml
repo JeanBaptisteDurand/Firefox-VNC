@@ -21,11 +21,9 @@ services:
         condition: service_completed_successfully
       caddy:
         condition: service_started
-    command: tunnel run
-    environment:
-      - TUNNEL_TOKEN_FILE=/etc/cloudflared/token
+    command: tunnel run --token-file /etc/cloudflared/token
     volumes:
-      - cfshared:/etc/cloudflared           # token, creds.json, config.yml
+      - cfshared:/etc/cloudflared   # token + config.yml
     networks: [desktopnet]
     restart: unless-stopped
 
