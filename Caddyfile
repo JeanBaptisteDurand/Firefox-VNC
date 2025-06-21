@@ -2,7 +2,7 @@
 	auto_https off # on laisse Cloudflare Edge faire le TLS
 }
 
-zos-academy.fr {  # ← bloc site
+http://zos-academy.fr {  # ← bloc site
 
 	@labs path /labs*
 
