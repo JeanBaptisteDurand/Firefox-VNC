@@ -1,4 +1,13 @@
-LOGIN_USER=xx
-LOGIN_PASS=xx
-JWT_SECRET=xx
+# 🔐 Identifiants de connexion pour l'interface Firefox
+LOGIN_USER=admin
+LOGIN_PASS=supersecret
+JWT_SECRET=changeMe!
 COOKIE_DOMAIN=zos-academy.fr
+
+# 🌐 Informations Cloudflare
+CF_ACCOUNT_ID=
+CF_API_TOKEN=
+CF_ZONE_ID=
+
+# 🌍 Domaine utilisé pour le tunnel Cloudflare
+DOMAIN=zos-academy.fr
