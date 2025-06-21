@@ -1,17 +1,21 @@
 #!/bin/sh
 set -eu
 
-api() {  # petit helper cURL
+api() {
   curl -sf -H "Authorization: Bearer $CF_API_TOKEN" \
        -H "Content-Type: application/json" "$@"
 }
 
-# 1) Récupère la ZONE_ID depuis le nom de domaine
-ZONE_ID=$(api "https://api.cloudflare.com/client/v4/zones?name=${DOMAIN}" \
+# ──────────────────────────────────────────────
+# 1) Trouve la ZONE_ID à partir du domaine
+# ──────────────────────────────────────────────
+ZONE_ID=$(api "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
           | jq -r '.result[0].id')
 echo "🔎 ZONE_ID = $ZONE_ID"
 
-# 2) Crée le tunnel s’il n’existe pas déjà
+# ──────────────────────────────────────────────
+# 2) Crée (ou récupère) le tunnel nommé “auto-tunnel”
+# ──────────────────────────────────────────────
 TUNNEL_NAME="auto-tunnel"
 TUNNEL=$(api "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel" \
         | jq -r --arg n "$TUNNEL_NAME" '.result[]?|select(.name==$n)')
@@ -25,18 +29,23 @@ fi
 TUNNEL_ID=$(echo "$TUNNEL" | jq -r '.result.id // .id')
 echo "✅ TUNNEL_ID = $TUNNEL_ID"
 
-# 3) Récupère le SERVICE TOKEN (« Run tunnel »)
+# ──────────────────────────────────────────────
+# 3) Récupère le « Run token » du tunnel
+# ──────────────────────────────────────────────
 TOKEN_JSON=$(api "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/token")
 TUNNEL_TOKEN=$(echo "$TOKEN_JSON" | jq -r '.result.token')
-echo "TUNNEL_TOKEN=$TUNNEL_TOKEN" >> /shared/env
 
-# 4) CNAME proxifié vers le tunnel
+#  → écrit uniquement la valeur du token (⚠ aucune clé=valeur)
+echo "$TUNNEL_TOKEN" > /shared/token
+
+# ──────────────────────────────────────────────
+# 4) CNAME proxifié domaine → <tunnel>.cfargotunnel.com
+# ──────────────────────────────────────────────
 CNAME_PAYLOAD=$(jq -n \
   --arg name "$DOMAIN" \
   --arg content "$TUNNEL_ID.cfargotunnel.com" \
   '{type:"CNAME",name:$name,content:$content,ttl:1,proxied:true}')
 
-# Cherche un éventuel record existant
 REC_ID=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=CNAME&name=$DOMAIN" \
          | jq -r '.result[0].id // empty')
 
@@ -51,9 +60,10 @@ else
 fi
 echo "🌐  $DOMAIN → $TUNNEL_ID.cfargotunnel.com (proxied)"
 
-# 5) Construit config.yml + credentials file attendus par cloudflared
-mkdir -p /shared/cf
-cat > /shared/cf/config.yml <<EOF
+# ──────────────────────────────────────────────
+# 5) Prépare config.yml + creds.json pour cloudflared
+# ──────────────────────────────────────────────
+cat > /shared/config.yml <<EOF
 tunnel: $TUNNEL_ID
 credentials-file: /etc/cloudflared/creds.json
 ingress:
@@ -61,6 +71,7 @@ ingress:
     service: http://caddy:80
   - service: http_status:404
 EOF
-echo "$TOKEN_JSON" | jq -r '.result.credentials_file' > /shared/cf/creds.json
+
+echo "$TOKEN_JSON" | jq -r '.result.credentials_file' > /shared/creds.json
 
 echo "🎉 Bootstrap terminé"
