@@ -13,23 +13,31 @@ echo "🔎 ZONE_ID = $ZONE_ID"
 
 # 2) Tunnel « auto-tunnel » (création si besoin)
 TUNNEL_NAME="auto-tunnel"
-TUNNEL=$(api "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel" \
-        | jq -r --arg n "$TUNNEL_NAME" '.result[]?|select(.name==$n)')
+TUNNEL=$(api "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel" |
+         jq -r --arg n "$TUNNEL_NAME" '.result[]?|select(.name==$n)')
 
 if [ -z "$TUNNEL" ]; then
 	echo "🆕  Création du tunnel…"
 	TUNNEL=$(api -X POST "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel" \
-	  --data "{\"name\":\"$TUNNEL_NAME\"}")
+	        --data "{\"name\":\"$TUNNEL_NAME\"}")
 fi
 
 TUNNEL_ID=$(echo "$TUNNEL" | jq -r '.result.id // .id')
 echo "✅ TUNNEL_ID = $TUNNEL_ID"
 
-# 3) Jeton « run tunnel » ---- (renvoie une chaine brute)
-TOKEN_RAW=$(api "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/token")
+# 3) Jeton de run — toujours une chaîne, même si emballée dans JSON
+RAW=$(api "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/cfd_tunnel/$TUNNEL_ID/token")
 
-# on enlève éventuels guillemets + retour-chariot puis on écrit sans newline
-printf '%s' "$(echo "$TOKEN_RAW" | tr -d '"\n')" > /shared/token
+TOKEN=$(echo "$RAW" | jq -r '
+  if type=="string" then .
+  else (.result // .token // .result.token // empty)
+  end' )
+
+# sécurité : stop si vide
+[ -z "$TOKEN" ] && { echo "❌ Jeton introuvable dans la réponse API"; exit 1; }
+
+# écrit sans retour-chariot
+printf '%s' "$TOKEN" > /shared/token
 
 # 4) CNAME proxifié domaine → tunnel
 CNAME_PAYLOAD=$(jq -n \
@@ -37,8 +45,8 @@ CNAME_PAYLOAD=$(jq -n \
   --arg content "$TUNNEL_ID.cfargotunnel.com" \
   '{type:"CNAME",name:$name,content:$content,ttl:1,proxied:true}')
 
-REC_ID=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=CNAME&name=$DOMAIN" \
-         | jq -r '.result[0].id // empty')
+REC_ID=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=CNAME&name=$DOMAIN" |
+         jq -r '.result[0].id // empty')
 
 if [ -n "$REC_ID" ]; then
 	api -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$REC_ID" \
@@ -49,7 +57,7 @@ else
 fi
 echo "🌐  $DOMAIN → $TUNNEL_ID.cfargotunnel.com (proxied)"
 
-# 5) config.yml minimal
+# 5) config.yml minimal (aucun credentials_file requis)
 cat > /shared/config.yml <<EOF
 tunnel: $TUNNEL_ID
 ingress:
